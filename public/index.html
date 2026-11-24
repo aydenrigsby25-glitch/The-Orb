@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The ORB</title>
+<meta name="description" content="Ask The ORB. It reads your stars and answers once.">
+<meta property="og:title" content="The ORB">
+<meta property="og:description" content="Ask the stars. The ORB answers once.">
+<meta property="og:image" content="/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0b0a1a">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night: #0b0a1a;
+    --ink: #edebff;
+    --dim: #a9a4d6;
+    --faint: #5d5785;
+    --panel: rgba(24, 20, 58, 0.62);
+    --line: rgba(180, 160, 255, 0.16);
+    --gold: #f5d58a;
+    --mint: #5fe7d4;
+    --violet: #8b62f2;
+    --blue: #7fa8ff;
+    --lilac: #c9a2ff;
+    --serif: "Cormorant Garamond", Georgia, serif;
+    --sans: "Inter", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background:
+      radial-gradient(900px 600px at 50% 8%, #1d1548 0%, transparent 62%),
+      radial-gradient(900px 600px at 100% 100%, #1a0f3a 0%, transparent 60%),
+      var(--night);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.55;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+  #stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .star { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff;
+          animation: twinkle var(--d) ease-in-out infinite alternate; opacity: .2; }
+  @keyframes twinkle { to { opacity: var(--o); } }
+
+  main { position: relative; z-index: 1; width: 100%; max-width: 680px; padding: 28px 18px 210px;
+         display: flex; flex-direction: column; align-items: center; }
+
+  /* ---------- emblem (matches the logo) ---------- */
+  .emblem { position: relative; width: 230px; height: 230px; margin: 6px 0 22px; }
+  .wheel { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .halo { position: absolute; inset: 18%; border-radius: 50%;
+          background: radial-gradient(circle, rgba(92,62,190,.55) 0%, rgba(60,40,140,.25) 45%, transparent 70%); }
+  .orb {
+    position: absolute; inset: 28%; border-radius: 50%;
+    background: radial-gradient(circle at 37% 34%, #ffffff 0%, #e3fbf7 4%, #5fe7d4 15%, #78a8e8 38%,
+                #8b62f2 60%, #5539a4 80%, #2c1e65 100%);
+    box-shadow: 0 0 46px 6px rgba(139, 98, 242, .28);
+    animation: breathe 5s ease-in-out infinite;
+  }
+  .orb::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
+                background: radial-gradient(circle at 37% 34%, rgba(255,255,255,.55), transparent 22%);
+                animation: glint 7s ease-in-out infinite; }
+  .emblem.thinking .wheel { animation: turn 1.4s cubic-bezier(.6,.05,.4,.95) infinite; }
+  .emblem.thinking .orb { box-shadow: 0 0 70px 14px rgba(95, 231, 212, .35); }
+  .emblem.anomaly { animation: glitch .45s steps(2) 6; }
+  @keyframes turn { to { transform: rotate(360deg); } }
+  @keyframes breathe { 50% { transform: scale(1.04); } }
+  @keyframes glint { 50% { transform: translate(6%, 4%); opacity: .6; } }
+  @keyframes glitch {
+    0% { filter: hue-rotate(0); transform: translate(0); }
+    50% { filter: hue-rotate(160deg) saturate(2); transform: translate(3px,-2px) skewX(4deg); }
+    100% { filter: hue-rotate(300deg); transform: translate(-3px,1px); }
+  }
+
+  h1 { margin: 0; line-height: 0; }
+  h1 img { width: 280px; max-width: 78vw; height: auto; }
+  .tagline { margin: 26px 0 26px; line-height: 0; }
+  .tagline img { width: 150px; height: auto; opacity: .95; }
+
+  /* ---------- chart card ---------- */
+  .card { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
+          padding: 18px; backdrop-filter: blur(10px); }
+  .chart-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  label { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
+  label .req { color: var(--gold); }
+  select {
+    width: 100%; appearance: none; background: rgba(8, 6, 26, .7); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 30px 10px 12px; font: inherit;
+    background-image: linear-gradient(45deg, transparent 50%, var(--dim) 50%), linear-gradient(135deg, var(--dim) 50%, transparent 50%);
+    background-position: calc(100% - 16px) 52%, calc(100% - 11px) 52%; background-size: 5px 5px; background-repeat: no-repeat;
+  }
+  textarea:focus { outline: none; }
+  form:focus-within { border-color: rgba(201,162,255,.45); }
+  select:focus, button:focus-visible { outline: 2px solid rgba(201,162,255,.6); outline-offset: 2px; }
+  .chart-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 12px; flex-wrap: wrap; }
+  .hint { color: var(--dim); font-size: 13px; }
+  .btn { background: linear-gradient(135deg, #5fc9d6 0%, #8b62f2 55%, #5539a4 100%); color: #fff; border: 0; border-radius: 999px;
+         padding: 10px 20px; font: 500 14px var(--sans); cursor: pointer; letter-spacing: .02em; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .chart-summary { display: none; width: 100%; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .pill { font-size: 12.5px; color: var(--dim); border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px; background: rgba(24,20,58,.5); }
+  .pill b { color: var(--ink); font-weight: 500; }
+  .linkish { background: none; border: 0; color: var(--faint); font: 12.5px var(--sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 4px; }
+  .linkish:hover { color: var(--dim); }
+
+  /* ---------- conversation ---------- */
+  #log { width: 100%; display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
+  .msg { max-width: 92%; animation: rise .5s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+  .you { align-self: flex-end; background: rgba(140,109,255,.16); border: 1px solid rgba(140,109,255,.3);
+         padding: 9px 14px; border-radius: 16px 16px 4px 16px; color: var(--ink); }
+  .orb-msg { align-self: flex-start; background: var(--panel); border: 1px solid var(--line);
+             padding: 14px 16px; border-radius: 16px 16px 16px 4px; backdrop-filter: blur(8px); }
+  .orb-msg .speech { font-family: var(--serif); font-size: 20px; line-height: 1.45; }
+  .badge { display: inline-block; font: 600 11px var(--sans); letter-spacing: .16em; text-transform: uppercase;
+           padding: 3px 10px; border-radius: 999px; margin-bottom: 8px; border: 1px solid currentColor; }
+  .badge.Yes { color: var(--gold); } .badge.No { color: var(--blue); } .badge.Maybe { color: var(--lilac); }
+  .badge.answer { color: var(--mint); }
+  .badge.anomaly { color: #fff; border-color: transparent;
+                   background: linear-gradient(90deg, #ff6ad5, #c774e8, #ad8cff, #8795e8, #94d0ff, #ff6ad5); background-size: 300% 100%;
+                   animation: shimmer 3s linear infinite; }
+  @keyframes shimmer { to { background-position: 300% 0; } }
+  .again { font-size: 11.5px; color: var(--faint); margin-left: 8px; letter-spacing: .04em; }
+  .horo { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+  .nick { font-family: var(--serif); font-style: italic; font-size: 22px; color: var(--gold); margin: 2px 0 6px; }
+  .horo p { margin: 0; color: var(--ink); }
+  .zenith { display: grid; gap: 6px; font-family: var(--serif); font-size: 19px; }
+  .zenith .do span, .zenith .dont span { font: 600 11px var(--sans); letter-spacing: .16em; text-transform: uppercase; margin-right: 10px; }
+  .zenith .do span { color: var(--gold); } .zenith .dont span { color: var(--blue); }
+  .zenith .split { height: 1px; background: var(--line); margin: 4px 0; }
+  .typing { display: inline-flex; gap: 5px; padding: 4px 2px; }
+  .typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); animation: dot 1.2s infinite ease-in-out; }
+  .typing i:nth-child(2) { animation-delay: .15s; } .typing i:nth-child(3) { animation-delay: .3s; }
+  @keyframes dot { 50% { opacity: .2; transform: translateY(-3px); } }
+
+  /* ---------- composer ---------- */
+  .composer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2;
+              background: linear-gradient(to top, var(--night) 55%, transparent); padding: 26px 16px 18px; }
+  .composer-inner { max-width: 680px; margin: 0 auto; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { background: rgba(24,20,58,.7); border: 1px solid var(--line); color: var(--dim); border-radius: 999px;
+          padding: 6px 12px; font: 13px var(--sans); cursor: pointer; }
+  .chip:hover { color: var(--ink); border-color: rgba(201,162,255,.4); }
+  form { display: flex; gap: 10px; align-items: flex-end; background: rgba(18,15,46,.92); border: 1px solid var(--line);
+         border-radius: 18px; padding: 8px 8px 8px 16px; }
+  textarea { flex: 1; resize: none; border: 0; background: transparent; color: var(--ink); font: 15.5px/1.5 var(--sans);
+             padding: 8px 0; max-height: 120px; }
+  textarea::placeholder { color: var(--faint); }
+  .send { width: 42px; height: 42px; border-radius: 50%; padding: 0; display: grid; place-items: center; flex: none; }
+  .locked { opacity: .45; pointer-events: none; }
+  footer { margin-top: 30px; text-align: center; }
+
+  @media (max-width: 520px) {
+    .emblem { width: 200px; height: 200px; } .chart-row { grid-template-columns: 1fr; }
+    .orb-msg .speech { font-size: 18.5px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="stars" aria-hidden="true"></div>
+
+<main>
+  <div class="emblem" id="orb" aria-hidden="true"><svg class="wheel" viewBox="-310 -310 620 620"><circle r="292" fill="none" stroke="rgba(169,164,214,.28)" stroke-width="2"/><circle r="256" fill="none" stroke="rgba(169,164,214,.55)" stroke-width="2.5"/><line x1="0.0" y1="-234.0" x2="0.0" y2="-302.0" stroke="#f5d58a" stroke-width="5" stroke-linecap="round"/><line x1="125.0" y1="-216.5" x2="138.5" y2="-239.9" stroke="#8e88c0" stroke-width="4" stroke-linecap="round"/><line x1="216.5" y1="-125.0" x2="239.9" y2="-138.5" stroke="#8e88c0" stroke-width="4" stroke-linecap="round"/><line x1="234.0" y1="0.0" x2="302.0" y2="0.0" stroke="#f5d58a" stroke-width="5" stroke-linecap="round"/><line x1="216.5" y1="125.0" x2="239.9" y2="138.5" stroke="#8e88c0" stroke-width="4" stroke-linecap="round"/><line x1="125.0" y1="216.5" x2="138.5" y2="239.9" stroke="#8e88c0" stroke-width="4" stroke-linecap="round"/><line x1="0.0" y1="234.0" x2="0.0" y2="302.0" stroke="#f5d58a" stroke-width="5" stroke-linecap="round"/><line x1="-125.0" y1="216.5" x2="-138.5" y2="239.9" stroke="#8e88c0" stroke-width="4" stroke-linecap="round"/><line x1="-216.5" y1="125.0" x2="-239.9" y2="138.5" stroke="#8e88c0" stroke-width="4" stroke-linecap="round"/><line x1="-234.0" y1="0.0" x2="-302.0" y2="0.0" stroke="#f5d58a" stroke-width="5" stroke-linecap="round"/><line x1="-216.5" y1="-125.0" x2="-239.9" y2="-138.5" stroke="#8e88c0" stroke-width="4" stroke-linecap="round"/><line x1="-125.0" y1="-216.5" x2="-138.5" y2="-239.9" stroke="#8e88c0" stroke-width="4" stroke-linecap="round"/></svg><div class="halo"></div><div class="orb"></div></div>
+  <h1><img src="/assets/wordmark.png" alt="The ORB" width="299" height="37"></h1>
+  <p class="tagline"><img src="/assets/tagline.png" alt="Ask the stars" width="153" height="11"></p>
+
+  <div class="chart-summary" id="chartSummary"></div>
+
+  <section class="card" id="chartCard" aria-label="Your natal chart">
+    <div class="chart-row">
+      <div><label for="sun">Sun <span class="req">✦</span></label><select id="sun"></select></div>
+      <div><label for="moon">Moon</label><select id="moon"></select></div>
+      <div><label for="rising">Rising</label><select id="rising"></select></div>
+    </div>
+    <div class="chart-foot">
+      <span class="hint" id="chartHint">The ORB needs your Sun. Moon and Rising sharpen its sight.</span>
+      <button class="btn" id="saveChart" disabled>Awaken the ORB</button>
+    </div>
+  </section>
+
+  <div id="log" aria-live="polite"></div>
+
+  <footer><button class="linkish" id="forget">Make the ORB forget me</button></footer>
+</main>
+
+<div class="composer" id="composer">
+  <div class="composer-inner">
+    <div class="chips">
+      <button class="chip" data-q="Should I text them first?">Should I text them first?</button>
+      <button class="chip" data-q="Give me an unhinged horoscope">Unhinged horoscope</button>
+      <button class="chip" data-q="Daily zenith">Daily Zenith</button>
+    </div>
+    <form id="ask">
+      <textarea id="q" rows="1" maxlength="500" placeholder="Ask your celestial question…" aria-label="Your question"></textarea>
+      <button class="btn send" type="submit" aria-label="Ask">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+const SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo","Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"];
+const GLYPH = {Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Virgo:"♍",Libra:"♎",Scorpio:"♏",Sagittarius:"♐",Capricorn:"♑",Aquarius:"♒",Pisces:"♓"};
+const $ = (id) => document.getElementById(id);
+
+// ---------- storage (wrapped: some browsers block localStorage) ----------
+const store = {
+  get(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  clear() { try { ["orb.chart","orb.memory","orb.log"].forEach(k => localStorage.removeItem(k)); } catch {} },
+};
+const freshMemory = () => ({ known: {}, last_key: null, nicknames: [], recent: [] });
+let chart = store.get("orb.chart", null);
+let memory = store.get("orb.memory", freshMemory());
+let log = store.get("orb.log", []);
+let busy = false;
+
+// ---------- stars ----------
+(function stars() {
+  const box = $("stars");
+  for (let i = 0; i < 110; i++) {
+    const s = document.createElement("div");
+    s.className = "star";
+    s.style.left = Math.random() * 100 + "%";
+    s.style.top = Math.random() * 100 + "%";
+    s.style.setProperty("--d", (2 + Math.random() * 4).toFixed(1) + "s");
+    s.style.setProperty("--o", (0.4 + Math.random() * 0.6).toFixed(2));
+    if (Math.random() < 0.15) { s.style.width = s.style.height = "3px"; }
+    box.appendChild(s);
+  }
+})();
+
+// ---------- natal chart ----------
+function fillSelect(el, optional) {
+  el.innerHTML = `<option value="">${optional ? "Unknown" : "Choose…"}</option>` +
+    SIGNS.map(s => `<option value="${s}">${GLYPH[s]}  ${s}</option>`).join("");
+}
+fillSelect($("sun"), false); fillSelect($("moon"), true); fillSelect($("rising"), true);
+$("sun").addEventListener("change", () => $("saveChart").disabled = !$("sun").value);
+
+$("saveChart").addEventListener("click", () => {
+  chart = { sun: $("sun").value, moon: $("moon").value || null, rising: $("rising").value || null };
+  store.set("orb.chart", chart);
+  renderChartState();
+  const missing = ["moon", "rising"].filter(k => !chart[k]);
+  let line = `The ORB opens its eye and sees your ${chart.sun} Sun.`;
+  if (missing.length) line += ` Your ${missing.map(m => m[0].toUpperCase() + m.slice(1)).join(" and ")} ${missing.length > 1 ? "remain" : "remains"} in shadow, but it will read what it can. Ask.`;
+  else line += ` Your ${chart.moon} Moon and ${chart.rising} Rising come into focus. Ask.`;
+  addEntry({ who: "orb", res: { kind: "intake", text: line } });
+  $("q").focus();
+});
+
+function renderChartState() {
+  const has = !!(chart && chart.sun);
+  $("chartCard").style.display = has ? "none" : "block";
+  $("chartSummary").style.display = has ? "flex" : "none";
+  $("composer").classList.toggle("locked", !has);
+  if (!has) return;
+  const part = (k, label) => chart[k] ? `<span class="pill">${label} <b>${GLYPH[chart[k]]} ${chart[k]}</b></span>` : "";
+  $("chartSummary").innerHTML = part("sun", "Sun") + part("moon", "Moon") + part("rising", "Rising") +
+    `<button class="linkish" id="editChart">change</button>`;
+  $("editChart").onclick = () => {
+    $("sun").value = chart.sun; $("moon").value = chart.moon || ""; $("rising").value = chart.rising || "";
+    $("saveChart").disabled = false;
+    $("chartCard").style.display = "block"; $("chartSummary").style.display = "none";
+  };
+}
+
+// ---------- rendering ----------
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+function renderEntry(entry) {
+  if (entry.who === "you") return el("div", "msg you", entry.text);
+  const r = entry.res, box = el("div", "msg orb-msg");
+
+  if (r.kind === "zenith") {
+    const z = el("div", "zenith");
+    (r.lines || []).forEach((ln, i) => {
+      if (i === 3) z.appendChild(el("div", "split"));
+      const m = ln.match(/^(Do|Don[’']t):\s*(.*)$/);
+      const row = el("div", m && m[1] === "Do" ? "do" : "dont");
+      row.appendChild(el("span", null, m ? m[1] : ""));
+      row.appendChild(document.createTextNode(m ? m[2] : ln));
+      z.appendChild(row);
+    });
+    box.appendChild(z);
+    return box;
+  }
+
+  if (r.outcome) {
+    const isAnswer = r.kind === "open" && r.outcome !== "Cosmic Anomaly";
+    const cls = r.outcome === "Cosmic Anomaly" ? "anomaly" : (isAnswer ? "answer" : r.outcome);
+    const head = el("div");
+    head.appendChild(el("span", "badge " + cls, isAnswer ? "Fixed answer" : r.outcome));
+    if (r.reused) head.appendChild(el("span", "again", "same question, same stars"));
+    box.appendChild(head);
+  }
+  if (r.kind !== "horoscope") box.appendChild(el("div", "speech", r.text));
+
+  if (r.nickname) {
+    const h = el("div", r.kind === "horoscope" ? "" : "horo");
+    h.appendChild(el("div", "speech", "The ORB declares: your unhinged horoscope is"));
+    h.appendChild(el("div", "nick", `“${r.nickname}.”`));
+    h.appendChild(el("p", null, r.horoscope || ""));
+    box.appendChild(h);
+  }
+  return box;
+}
+
+function addEntry(entry, persist = true) {
+  $("log").appendChild(renderEntry(entry));
+  if (persist) { log.push(entry); log = log.slice(-60); store.set("orb.log", log); }
+  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+}
+
+// ---------- asking ----------
+function remember(res) {
+  if (res.intent_key && (res.kind === "yes_no" || res.kind === "open")) {
+    memory.known[res.intent_key] = { kind: res.kind, outcome: res.outcome };
+    const keys = Object.keys(memory.known);
+    if (keys.length > 200) delete memory.known[keys[0]];
+    memory.last_key = res.intent_key;
+  }
+  if (res.nickname) memory.nicknames = [...memory.nicknames, res.nickname].slice(-80);
+  if (res.kind !== "zenith" && res.text) memory.recent = [...memory.recent, res.text].slice(-15);
+  store.set("orb.memory", memory);   // Daily Zenith is never remembered
+}
+
+async function ask(question) {
+  if (busy || !question.trim() || !chart) return;
+  busy = true;
+  addEntry({ who: "you", text: question });
+  const orb = $("orb"), wait = el("div", "msg orb-msg");
+  wait.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+  $("log").appendChild(wait);
+  orb.classList.add("thinking");
+  const started = Date.now();
+
+  let res;
+  try {
+    const r = await fetch("/api/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, chart, memory }),
+    });
+    if (!r.ok) throw new Error(r.status);
+    res = await r.json();
+  } catch (e) {
+    res = { kind: "error", text: "The ORB's signal is lost somewhere past Neptune. Ask again in a moment." };
+  }
+  // a little suspense, never less than ~0.9s
+  await new Promise(ok => setTimeout(ok, Math.max(0, 900 - (Date.now() - started))));
+
+  wait.remove();
+  // let the wheel finish its turn so it stops in the logo's resting position
+  orb.querySelector(".wheel").addEventListener("animationiteration",
+    () => { if (!busy) orb.classList.remove("thinking"); }, { once: true });
+  if (res.outcome === "Cosmic Anomaly") {
+    orb.classList.add("anomaly"); setTimeout(() => orb.classList.remove("anomaly"), 3000);
+  }
+  if (res.kind !== "error") remember(res);
+  addEntry({ who: "orb", res }, res.kind !== "error");
+  busy = false;
+}
+
+$("ask").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const q = $("q").value; $("q").value = ""; $("q").style.height = "auto";
+  ask(q);
+});
+$("q").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("ask").requestSubmit(); }
+});
+$("q").addEventListener("input", function () { this.style.height = "auto"; this.style.height = this.scrollHeight + "px"; });
+document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => ask(c.dataset.q)));
+
+$("forget").addEventListener("click", () => {
+  if (!confirm("The ORB will forget your chart, your questions, and every answer it gave. Continue?")) return;
+  store.clear(); chart = null; memory = freshMemory(); log = [];
+  $("log").innerHTML = ""; $("sun").value = $("moon").value = $("rising").value = "";
+  $("saveChart").disabled = true; renderChartState();
+});
+
+// ---------- boot ----------
+renderChartState();
+log.forEach(entry => addEntry(entry, false));
+</script>
+</body>
+</html>
